@@ -59,7 +59,8 @@
             display: flex;
             justify-content: space-between;
         }
-        .highest-bid { background-color: #e8f8f5; font-weight: bold; color: #27ae60; border-radius: 4px; }
+        .valid-bid { background-color: #e8f8f5; color: #27ae60; font-weight: bold; }
+        .below-msp-bid { background-color: #ffefef; color: #c0392b; }
 
         /* Countdown Notice Box */
         .countdown-box {
@@ -91,23 +92,25 @@
         }
         .bid-btn:hover { background-color: #219653; }
 
-        /* Winner Announcement Section */
-        .winner-banner {
+        /* Banners for Buyer View */
+        .winner-banner, .pending-banner {
             grid-column: span 2;
-            background-color: #d4efdf;
-            border: 2px solid #27ae60;
             padding: 20px;
             border-radius: 10px;
             text-align: center;
             display: none;
         }
+        .winner-banner { background-color: #d4efdf; border: 2px solid #27ae60; }
         .winner-banner h2 { color: #196f3d; margin-top: 0; }
+        
+        .pending-banner { background-color: #fef9e7; border: 2px solid #f39c12; }
+        .pending-banner h2 { color: #b7950b; margin-top: 0; }
     </style>
 </head>
 <body>
 
     <div class="navbar">
-        <h1>🌾 FairBid Live Auction Floor</h1>
+        <h1>🌾 FairBid Live Auction Floor (Buyer View)</h1>
         <span id="auctionStatus">Status: <strong style="color: #2ecc71;">LIVE</strong></span>
     </div>
 
@@ -130,12 +133,12 @@
             </div>
             <div class="detail-row">
                 <span class="detail-label">Farmer Minimum Price (MSP):</span>
-                <span class="detail-value" style="color: #c0392b;">₹22 / kg</span>
+                <span class="detail-value" id="mspPrice" style="color: #c0392b;">₹22 / kg</span>
             </div>
             <hr style="border: 0; border-top: 1px solid #ecf0f1; margin: 20px 0;">
             <div class="detail-row">
-                <span class="detail-label">Current Highest Bid:</span>
-                <span class="detail-value" id="displayHighestBid" style="font-size: 18px; color: #27ae60;">₹22 / kg</span>
+                <span class="detail-label">Highest Bid Recorded:</span>
+                <span class="detail-value" id="displayHighestBid" style="font-size: 18px; color: #27ae60;">₹0 / kg</span>
             </div>
         </div>
 
@@ -143,42 +146,48 @@
         <div class="card">
             <h3>⚡ Live Bidding Room</h3>
             
-            <!-- Transparent Bid Feed showing all buyers' bids -->
             <div class="bid-feed" id="bidFeed">
-                <div class="bid-item"><span>Initial MSP Set by Farmer</span> <strong>₹22 / kg</strong></div>
+                <div class="bid-item"><span>Auction Opened (MSP: ₹22/kg)</span> <strong>Waiting for bids...</strong></div>
             </div>
 
-            <!-- Countdown Alert Box (1 bid, 2 bid, 3 bid) -->
             <div id="countdownBox" class="countdown-box">
                 ⏳ No new bids! Closing in... <span id="countdownText">1 Bid...</span>
             </div>
 
-            <!-- Bid Input Form for Buyers -->
+            <!-- Bid Input Form -->
             <form id="bidForm" onsubmit="submitBid(event)">
                 <div class="form-group">
                     <label for="bidAmount">Your Bid Amount (₹/kg)</label>
-                    <input type="number" id="bidAmount" placeholder="Enter amount higher than current bid" min="23" required>
+                    <input type="number" id="bidAmount" placeholder="Enter your bid amount" min="1" required>
                 </div>
                 <button type="submit" class="bid-btn" id="bidButton">Place Bid</button>
             </form>
         </div>
 
-        <!-- WINNER BANNER (Displayed to Farmer and Buyers when auction closes) -->
+        <!-- WINNER BANNER (If MSP met) -->
         <div id="winnerBanner" class="winner-banner">
-            <h2>🎉 Auction Closed & Won!</h2>
+            <h2>🎉 Auction Successful & Won!</h2>
             <p id="winnerText" style="font-size: 16px; color: #145a32; margin: 5px 0;"></p>
-            <p style="font-size: 13px; color: #7f8c8d;">This winning bid and buyer profile have been successfully dispatched to the Farmer's Dashboard for review and settlement.</p>
+            <p style="font-size: 13px; color: #7f8c8d;">Winning bid met or exceeded the Farmer's MSP.</p>
+        </div>
+
+        <!-- PENDING FARMER REVIEW BANNER (If MSP NOT met) -->
+        <div id="pendingBanner" class="pending-banner">
+            <h2>⏳ Auction Closed – Pending Farmer Review</h2>
+            <p id="pendingText" style="font-size: 15px; color: #7d6608; margin: 5px 0;">The highest bid of ₹0/kg is below the farmer's MSP.</p>
+            <p style="font-size: 13px; color: #7f8c8d; margin-top: 5px;">Waiting for the farmer to review alternative offers, revise pricing, or make a decision.</p>
         </div>
 
     </div>
 
     <script>
-        let currentHighestBid = 22;
+        const farmerMSP = 22; 
+        let highestBid = 0;
         let inactivityTimer = null;
         let countdownStep = 0;
         let auctionActive = true;
+        let allBids = [];
 
-        // Reset and manage the 1-bid, 2-bid, 3-bid countdown logic
         function resetInactivityTimer() {
             if (!auctionActive) return;
             
@@ -188,7 +197,6 @@
             document.getElementById('countdownBox').style.display = 'none';
             countdownStep = 0;
 
-            // If no bid is placed for 6 seconds, start the 1-bid, 2-bid, 3-bid sequence
             inactivityTimer = setTimeout(() => {
                 startCountdownSequence();
             }, 6000); 
@@ -210,12 +218,11 @@
                 } else if (countdownStep === 3) {
                     text.innerText = "3 Bid... SOLD!";
                     clearInterval(window.stepInterval);
-                    closeAuction();
+                    evaluateAuctionResult();
                 }
-            }, 2500); // 2.5 seconds per step
+            }, 2500);
         }
 
-        // Handle incoming bids from any buyer
         function submitBid(event) {
             event.preventDefault();
             if (!auctionActive) return;
@@ -223,54 +230,52 @@
             const bidInput = document.getElementById('bidAmount');
             const newBid = parseFloat(bidInput.value);
 
-            if (newBid <= currentHighestBid) {
-                alert(`Your bid must be higher than the current highest bid of ₹${currentHighestBid}!`);
+            if (newBid <= highestBid) {
+                alert(`Your bid must be higher than the current highest bid of ₹${highestBid}!`);
                 return;
             }
 
-            // Update highest bid
-            currentHighestBid = newBid;
+            highestBid = newBid;
             document.getElementById('displayHighestBid').innerText = `₹${newBid} / kg`;
-            bidInput.min = newBid + 1; // Update min constraint for next bidder
             bidInput.value = '';
 
-            // Add to transparent public bid feed
-            const feed = document.getElementById('bidFeed');
-            const bidderName = "Buyer #" + Math.floor(Math.random() * 900 + 100); // Simulated buyer name
-            
-            // Remove previous highlight
-            const items = feed.getElementsByClassName('bid-item');
-            for(let item of items) item.classList.remove('highest-bid');
+            const bidderName = "Buyer #" + Math.floor(Math.random() * 900 + 100);
+            allBids.push({ name: bidderName, amount: newBid });
 
-            // Prepend new highest bid
+            const feed = document.getElementById('bidFeed');
+            const items = feed.getElementsByClassName('bid-item');
+            for(let item of items) item.classList.remove('valid-bid', 'below-msp-bid');
+
             const newEntry = document.createElement('div');
-            newEntry.className = 'bid-item highest-bid';
-            newEntry.innerHTML = `<span>${bidderName}</span> <strong>₹${newBid} / kg</strong>`;
+            const isMSP_Met = newBid >= farmerMSP;
+            newEntry.className = `bid-item ${isMSP_Met ? 'valid-bid' : 'below-msp-bid'}`;
+            newEntry.innerHTML = `<span>${bidderName} (${isMSP_Met ? 'Valid' : 'Below MSP'})</span> <strong>₹${newBid} / kg</strong>`;
             feed.prepend(newEntry);
 
-            // Reset countdown because a new bid came in
             resetInactivityTimer();
         }
 
-        // Close auction and declare winner to the farmer
-        function closeAuction() {
+        function evaluateAuctionResult() {
             auctionActive = false;
-            document.getElementById('auctionStatus').innerHTML = 'Status: <strong style="color: #c0392b;">CLOSED</strong>';
+            document.getElementById('auctionStatus').innerHTML = 'Status: <strong style="color: #c0392b;">CLOSED / PENDING</strong>';
             document.getElementById('bidForm').style.display = 'none';
             document.getElementById('countdownBox').style.display = 'none';
 
-            // Find winning buyer from the top feed item
-            const topFeedItem = document.querySelector('.bid-item.highest-bid');
-            const winningBuyer = topFeedItem ? topFeedItem.children[0].innerText : "FreshGrocers Corp";
+            if (highestBid >= farmerMSP) {
+                const winningBidObj = allBids.find(b => b.amount === highestBid);
+                const winnerName = winningBidObj ? winningBidObj.name : "Buyer";
 
-            // Show winner banner
-            const banner = document.getElementById('winnerBanner');
-            const text = document.getElementById('winnerText');
-            text.innerHTML = `Winning Buyer: <strong>${winningBuyer}</strong> | Final Agreed Price: <strong>₹${currentHighestBid} / kg</strong> for 500 kg.<br>Total Payout: <strong>₹${currentHighestBid * 500}</strong>`;
-            banner.style.display = 'block';
+                const banner = document.getElementById('winnerBanner');
+                document.getElementById('winnerText').innerHTML = `Winning Buyer: <strong>${winnerName}</strong> | Agreed Price: <strong>₹${highestBid} / kg</strong> for 500 kg.<br>Total Payout: <strong>₹${highestBid * 500}</strong>`;
+                banner.style.display = 'block';
+            } else {
+                // Show Pending Status for Buyer
+                const pendingBanner = document.getElementById('pendingBanner');
+                document.getElementById('pendingText').innerHTML = `The highest bid reached was <strong>₹${highestBid}/kg</strong>, which is below the farmer's MSP of ₹${farmerMSP}/kg.`;
+                pendingBanner.style.display = 'block';
+            }
         }
 
-        // Initialize timer on load
         window.onload = function() {
             resetInactivityTimer();
         }
