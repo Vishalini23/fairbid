@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairBid - Buyer Portal & Registration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 30px 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 480px;
+            width: 100%;
+        }
+        h2 { color: #2c3e50; text-align: center; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        .tab {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #95a5a6;
+            transition: 0.3s;
+        }
+        .tab.active {
+            color: #2980b9;
+            border-bottom: 2px solid #2980b9;
+            margin-bottom: -2px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #2980b9;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        .btn:hover { background-color: #2471a3; }
+        
+        .form-section { display: none; }
+        .form-section.active { display: block; }
+        
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 15px;
+            color: #7f8c8d;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        .back-link:hover { color: #2c3e50; }
+        .error-msg { color: #c0392b; font-size: 13px; margin-top: 5px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>🛒 Buyer Portal</h2>
+        <p class="subtitle">Secure Category-Based Registration & Login</p>
+
+        <!-- Toggle Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('login')">Login</div>
+            <div class="tab" onclick="switchTab('register')">Register</div>
+        </div>
+
+        <!-- LOGIN FORM (Restricted to Registered Users Only) -->
+        <div id="login-section" class="form-section active">
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="loginEmail">Registered Email</label>
+                    <input type="email" id="loginEmail" placeholder="Enter your registered email" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password" required>
+                </div>
+                <div id="loginError" class="error-msg">Invalid email or password. Please register first if you don't have an account.</div>
+                <button type="submit" class="btn">Login to Dashboard</button>
+            </form>
+        </div>
+
+        <!-- REGISTRATION FORM WITH BUYER CATEGORIES -->
+        <div id="register-section" class="form-section">
+            <form id="registerForm" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label for="regName">Full Name / Business Name</label>
+                    <input type="text" id="regName" placeholder="e.g., Ramesh Traders / Fresh Mart" required>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Email Address (Used for Login)</label>
+                    <input type="email" id="regEmail" placeholder="buyer@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">Create Password</label>
+                    <input type="password" id="regPassword" placeholder="Create a secure password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="buyerCategory">Select Buyer Category</label>
+                    <select id="buyerCategory" onchange="updateCategoryFields()" required>
+                        <option value="">-- Select Category --</option>
+                        <option value="individual">A. Individual Buyer</option>
+                        <option value="trader">B. Trader / Wholesaler</option>
+                        <option value="retailer">C. Retail Shop Owner</option>
+                        <option value="food_company">D. Food Processing Company</option>
+                    </select>
+                </div>
+
+                <!-- Dynamic Essential Document Field based on Category -->
+                <div class="form-group" id="docFieldGroup" style="display: none;">
+                    <label id="docLabel" for="docInput">Verification Document Number</label>
+                    <input type="text" id="docInput" placeholder="">
+                </div>
+
+                <button type="submit" class="btn" style="background-color: #27ae60;">Register Account</button>
+            </form>
+        </div>
+
+        <a href="index.html" class="back-link">← Back to Portal Selection</a>
+    </div>
+
+    <script>
+        // Switch tabs
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab');
+            const sections = document.querySelectorAll('.form-section');
+            
+            tabs.forEach(t => t.classList.remove('active'));
+            sections.forEach(s => s.classList.remove('active'));
+
+            if (tabName === 'login') {
+                tabs[0].classList.add('active');
+                document.getElementById('login-section').classList.add('active');
+            } else {
+                tabs[1].classList.add('active');
+                document.getElementById('register-section').classList.add('active');
+            }
+        }
+
+        // Dynamic Document Requirements per Category
+        function updateCategoryFields() {
+            const category = document.getElementById('buyerCategory').value;
+            const docGroup = document.getElementById('docFieldGroup');
+            const docLabel = document.getElementById('docLabel');
+            const docInput = document.getElementById('docInput');
+
+            if (!category) {
+                docGroup.style.display = 'none';
+                return;
+            }
+
+            docGroup.style.display = 'block';
+
+            if (category === 'individual') {
+                docLabel.innerText = "Government Photo ID (Voter ID / Aadhaar No.)";
+                docInput.placeholder = "Enter 12-digit Aadhaar or Voter ID number";
+                docInput.required = true;
+            } else if (category === 'trader') {
+                docLabel.innerText = "PAN Card or GST Number";
+                docInput.placeholder = "Enter PAN or GSTIN";
+                docInput.required = true;
+            } else if (category === 'retailer') {
+                docLabel.innerText = "Shop Registration / Business Proof No.";
+                docInput.placeholder = "Enter Shop License / Registration ID";
+                docInput.required = true;
+            } else if (category === 'food_company') {
+                docLabel.innerText = "FSSAI License / Incorporation Number";
+                docInput.placeholder = "Enter 14-digit FSSAI License Number";
+                docInput.required = true;
+            }
+        }
+
+        // Mock Database simulation for registered users
+        // (Later replaced by MySQL database checked via Java Servlets)
+        let registeredUsers = JSON.parse(localStorage.getItem('fairbid_buyers')) || [];
+
+        function handleRegister(event) {
+            event.preventDefault();
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const category = document.getElementById('buyerCategory').value;
+            const docNumber = document.getElementById('docInput').value;
+
+            // Check if email already exists
+            const existing = registeredUsers.find(u => u.email === email);
+            if (existing) {
+                alert("Email already registered! Please log in.");
+                switchTab('login');
+                return;
+            }
+
+            // Save user
+            registeredUsers.push({ name, email, password, category, docNumber });
+            localStorage.setItem('fairbid_buyers', JSON.stringify(registeredUsers));
+
+            alert("Registration successful! You can now log in using your credentials.");
+            document.getElementById('registerForm').reset();
+            document.getElementById('docFieldGroup').style.display = 'none';
+            switchTab('login');
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorMsg = document.getElementById('loginError');
+
+            // Verify against registered database (Enforces rule: only registered can login)
+            const user = registeredUsers.find(u => u.email === email && u.password === password);
+
+            if (user) {
+                errorMsg.style.display = 'none';
+                alert(`Welcome back, ${user.name}! Redirecting to Buyer Dashboard...`);
+                window.location.href = "buyer_dashboard.html";
+            } else {
+                errorMsg.style.display = 'block';
+            }
+        }
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairBid - Buyer Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        /* Navbar */
+        .navbar {
+            background-color: #2980b9;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .navbar h1 { margin: 0; font-size: 22px; }
+        .user-info { display: flex; align-items: center; gap: 15px; }
+        .logout-btn {
+            background-color: #c0392b;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .logout-btn:hover { background-color: #a93226; }
+
+        /* Main Container */
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        /* Section Cards */
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        .card h3 { color: #2c3e50; margin-top: 0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+
+        /* Filter Panel */
+        .filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 15px;
+            align-items: flex-end;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        label { margin-bottom: 5px; font-weight: 600; color: #34495e; font-size: 14px; }
+        select, input {
+            padding: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .filter-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .filter-btn:hover { background-color: #219653; }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 14px;
+        }
+        th { background-color: #f8f9fa; color: #2c3e50; }
+        tr:hover { background-color: #fdfefe; }
+        
+        .action-btn {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .action-btn:hover { background-color: #2471a3; }
+        .status-won { color: #27ae60; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <div class="navbar">
+        <h1>🌾 FairBid - Buyer Dashboard</h1>
+        <div class="user-info">
+            <span>Welcome, <strong>FreshGrocers Corp</strong></span>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </div>
+    </div>
+
+    <div class="container">
+
+        <!-- SECTION 1: Search & Filter Produce -->
+        <div class="card">
+            <h3>🔍 Find Crops & Sourcing Region</h3>
+            <div class="filter-grid">
+                <div class="form-group">
+                    <label for="filterCrop">Select Desired Crop</label>
+                    <select id="filterCrop">
+                        <option value="">All Crops</option>
+                        <option value="Tomatoes">Tomatoes</option>
+                        <option value="Potatoes">Potatoes</option>
+                        <option value="Wheat">Wheat</option>
+                        <option value="Rice">Rice</option>
+                        <option value="Onions">Onions</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filterState">Required State / Region</label>
+                    <select id="filterState">
+                        <option value="">All States</option>
+                        <option value="Tamil Nadu">Tamil Nadu</option>
+                        <option value="Karnataka">Karnataka</option>
+                        <option value="Maharashtra">Maharashtra</option>
+                        <option value="Punjab">Punjab</option>
+                        <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    </select>
+                </div>
+                <button class="filter-btn" onclick="filterListings()">Apply Filters</button>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Available Live Auctions & Listings -->
+        <div class="card">
+            <h3>📋 Available Produce Listings & Active Auctions</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Crop Name</th>
+                        <th>Quantity (kg)</th>
+                        <th>Quality Grade</th>
+                        <th>Location (State)</th>
+                        <th>Min Price (₹/kg)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="listingsTable">
+                    <tr>
+                        <td>Organic Tomatoes</td>
+                        <td>500 kg</td>
+                        <td>Grade A</td>
+                        <td>Tamil Nadu</td>
+                        <td>₹22</td>
+                        <td><a href="buyer_auction_room.html?id=101" class="action-btn">Enter Auction Room</a></td>
+                    </tr>
+                    <tr>
+                        <td>Fresh Potatoes</td>
+                        <td>1200 kg</td>
+                        <td>Grade B</td>
+                        <td>Karnataka</td>
+                        <td>₹18</td>
+                        <td><a href="buyer_auction_room.html?id=102" class="action-btn">Enter Auction Room</a></td>
+                    </tr>
+                    <tr>
+                        <td>Basmati Rice</td>
+                        <td>300 kg</td>
+                        <td>Grade A+</td>
+                        <td>Punjab</td>
+                        <td>₹45</td>
+                        <td><a href="buyer_auction_room.html?id=103" class="action-btn">Enter Auction Room</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- SECTION 3: Buyer Purchase History -->
+        <div class="card">
+            <h3>📜 Past Purchase & Auction History</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Auction ID</th>
+                        <th>Crop Name</th>
+                        <th>Quantity</th>
+                        <th>Winning Bid (₹/kg)</th>
+                        <th>Farmer ID</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#AC-904</td>
+                        <td>Onions</td>
+                        <td>800 kg</td>
+                        <td>₹24</td>
+                        <td>F-104</td>
+                        <td><span class="status-won">Won & Settled</span></td>
+                    </tr>
+                    <tr>
+                        <td>#AC-882</td>
+                        <td>Wheat</td>
+                        <td>1500 kg</td>
+                        <td>₹29</td>
+                        <td>F-109</td>
+                        <td><span class="status-won">Won & Settled</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        function filterListings() {
+            const crop = document.getElementById('filterCrop').value;
+            const state = document.getElementById('filterState').value;
+            alert(`Filtering for Crop: ${crop || 'All'} in State: ${state || 'All'}`);
+        }
+
+        function logout() {
+            alert("Logging out...");
+            window.location.href = "index.html";
+        }
+    </script>
+
+</body>
+</html>

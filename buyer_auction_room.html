@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairBid - Live Auction Room</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+        .navbar {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .navbar h1 { margin: 0; font-size: 20px; }
+        
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .card h3 { color: #2c3e50; margin-top: 0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        
+        /* Produce Details */
+        .detail-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 15px; }
+        .detail-label { color: #7f8c8d; font-weight: 600; }
+        .detail-value { color: #2c3e50; font-weight: bold; }
+
+        /* Live Bidding Feed */
+        .bid-feed {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ecf0f1;
+            border-radius: 6px;
+            padding: 10px;
+            background: #fafafa;
+            margin-bottom: 15px;
+        }
+        .bid-item {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .highest-bid { background-color: #e8f8f5; font-weight: bold; color: #27ae60; border-radius: 4px; }
+
+        /* Countdown Notice Box */
+        .countdown-box {
+            background-color: #fef9e7;
+            border: 1px solid #f39c12;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            color: #d68910;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        /* Form Controls */
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #34495e; font-size: 14px; }
+        input { width: 100%; padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; font-size: 14px; box-sizing: border-box; }
+        .bid-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .bid-btn:hover { background-color: #219653; }
+
+        /* Winner Announcement Section */
+        .winner-banner {
+            grid-column: span 2;
+            background-color: #d4efdf;
+            border: 2px solid #27ae60;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            display: none;
+        }
+        .winner-banner h2 { color: #196f3d; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <h1>🌾 FairBid Live Auction Floor</h1>
+        <span id="auctionStatus">Status: <strong style="color: #2ecc71;">LIVE</strong></span>
+    </div>
+
+    <div class="container">
+
+        <!-- LEFT PANEL: Produce Details & Min Price -->
+        <div class="card">
+            <h3>📦 Lot Details</h3>
+            <div class="detail-row">
+                <span class="detail-label">Crop Name:</span>
+                <span class="detail-value" id="cropName">Organic Tomatoes</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Quantity:</span>
+                <span class="detail-value" id="cropQty">500 kg</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Quality Grade:</span>
+                <span class="detail-value" id="cropQuality">Grade A (Tamil Nadu)</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Farmer Minimum Price (MSP):</span>
+                <span class="detail-value" style="color: #c0392b;">₹22 / kg</span>
+            </div>
+            <hr style="border: 0; border-top: 1px solid #ecf0f1; margin: 20px 0;">
+            <div class="detail-row">
+                <span class="detail-label">Current Highest Bid:</span>
+                <span class="detail-value" id="displayHighestBid" style="font-size: 18px; color: #27ae60;">₹22 / kg</span>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Live Bidding & Controls -->
+        <div class="card">
+            <h3>⚡ Live Bidding Room</h3>
+            
+            <!-- Transparent Bid Feed showing all buyers' bids -->
+            <div class="bid-feed" id="bidFeed">
+                <div class="bid-item"><span>Initial MSP Set by Farmer</span> <strong>₹22 / kg</strong></div>
+            </div>
+
+            <!-- Countdown Alert Box (1 bid, 2 bid, 3 bid) -->
+            <div id="countdownBox" class="countdown-box">
+                ⏳ No new bids! Closing in... <span id="countdownText">1 Bid...</span>
+            </div>
+
+            <!-- Bid Input Form for Buyers -->
+            <form id="bidForm" onsubmit="submitBid(event)">
+                <div class="form-group">
+                    <label for="bidAmount">Your Bid Amount (₹/kg)</label>
+                    <input type="number" id="bidAmount" placeholder="Enter amount higher than current bid" min="23" required>
+                </div>
+                <button type="submit" class="bid-btn" id="bidButton">Place Bid</button>
+            </form>
+        </div>
+
+        <!-- WINNER BANNER (Displayed to Farmer and Buyers when auction closes) -->
+        <div id="winnerBanner" class="winner-banner">
+            <h2>🎉 Auction Closed & Won!</h2>
+            <p id="winnerText" style="font-size: 16px; color: #145a32; margin: 5px 0;"></p>
+            <p style="font-size: 13px; color: #7f8c8d;">This winning bid and buyer profile have been successfully dispatched to the Farmer's Dashboard for review and settlement.</p>
+        </div>
+
+    </div>
+
+    <script>
+        let currentHighestBid = 22;
+        let inactivityTimer = null;
+        let countdownStep = 0;
+        let auctionActive = true;
+
+        // Reset and manage the 1-bid, 2-bid, 3-bid countdown logic
+        function resetInactivityTimer() {
+            if (!auctionActive) return;
+            
+            clearTimeout(inactivityTimer);
+            clearInterval(window.stepInterval);
+            
+            document.getElementById('countdownBox').style.display = 'none';
+            countdownStep = 0;
+
+            // If no bid is placed for 6 seconds, start the 1-bid, 2-bid, 3-bid sequence
+            inactivityTimer = setTimeout(() => {
+                startCountdownSequence();
+            }, 6000); 
+        }
+
+        function startCountdownSequence() {
+            if (!auctionActive) return;
+            const box = document.getElementById('countdownBox');
+            const text = document.getElementById('countdownText');
+            box.style.display = 'block';
+
+            countdownStep = 1;
+            text.innerText = "1 Bid... Going Once!";
+
+            window.stepInterval = setInterval(() => {
+                countdownStep++;
+                if (countdownStep === 2) {
+                    text.innerText = "2 Bid... Going Twice!";
+                } else if (countdownStep === 3) {
+                    text.innerText = "3 Bid... SOLD!";
+                    clearInterval(window.stepInterval);
+                    closeAuction();
+                }
+            }, 2500); // 2.5 seconds per step
+        }
+
+        // Handle incoming bids from any buyer
+        function submitBid(event) {
+            event.preventDefault();
+            if (!auctionActive) return;
+
+            const bidInput = document.getElementById('bidAmount');
+            const newBid = parseFloat(bidInput.value);
+
+            if (newBid <= currentHighestBid) {
+                alert(`Your bid must be higher than the current highest bid of ₹${currentHighestBid}!`);
+                return;
+            }
+
+            // Update highest bid
+            currentHighestBid = newBid;
+            document.getElementById('displayHighestBid').innerText = `₹${newBid} / kg`;
+            bidInput.min = newBid + 1; // Update min constraint for next bidder
+            bidInput.value = '';
+
+            // Add to transparent public bid feed
+            const feed = document.getElementById('bidFeed');
+            const bidderName = "Buyer #" + Math.floor(Math.random() * 900 + 100); // Simulated buyer name
+            
+            // Remove previous highlight
+            const items = feed.getElementsByClassName('bid-item');
+            for(let item of items) item.classList.remove('highest-bid');
+
+            // Prepend new highest bid
+            const newEntry = document.createElement('div');
+            newEntry.className = 'bid-item highest-bid';
+            newEntry.innerHTML = `<span>${bidderName}</span> <strong>₹${newBid} / kg</strong>`;
+            feed.prepend(newEntry);
+
+            // Reset countdown because a new bid came in
+            resetInactivityTimer();
+        }
+
+        // Close auction and declare winner to the farmer
+        function closeAuction() {
+            auctionActive = false;
+            document.getElementById('auctionStatus').innerHTML = 'Status: <strong style="color: #c0392b;">CLOSED</strong>';
+            document.getElementById('bidForm').style.display = 'none';
+            document.getElementById('countdownBox').style.display = 'none';
+
+            // Find winning buyer from the top feed item
+            const topFeedItem = document.querySelector('.bid-item.highest-bid');
+            const winningBuyer = topFeedItem ? topFeedItem.children[0].innerText : "FreshGrocers Corp";
+
+            // Show winner banner
+            const banner = document.getElementById('winnerBanner');
+            const text = document.getElementById('winnerText');
+            text.innerHTML = `Winning Buyer: <strong>${winningBuyer}</strong> | Final Agreed Price: <strong>₹${currentHighestBid} / kg</strong> for 500 kg.<br>Total Payout: <strong>₹${currentHighestBid * 500}</strong>`;
+            banner.style.display = 'block';
+        }
+
+        // Initialize timer on load
+        window.onload = function() {
+            resetInactivityTimer();
+        }
+    </script>
+
+</body>
+</html>
