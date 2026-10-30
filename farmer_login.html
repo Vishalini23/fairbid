@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairBid - Farmer Portal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px 0;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+        }
+        h2 { color: #27ae60; margin-bottom: 5px; text-align: center; }
+        p.subtitle { text-align: center; color: #7f8c8d; font-size: 13px; margin-bottom: 25px; }
+
+        /* Tab Switcher */
+        .tab-group {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 25px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #7f8c8d;
+            cursor: pointer;
+            transition: 0.3s;
+            text-align: center;
+        }
+        .tab-btn.active {
+            color: #27ae60;
+            border-bottom: 3px solid #27ae60;
+            margin-bottom: -2px;
+        }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; color: #333; font-size: 13px; }
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #27ae60;
+        }
+        button.submit-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+        button.submit-btn:hover { background-color: #219653; }
+        .hidden { display: none; }
+        .error { color: #e74c3c; font-size: 13px; margin-top: 8px; text-align: center; display: block; }
+        .success { color: #27ae60; font-size: 13px; margin-top: 8px; text-align: center; display: block; }
+        .back-link { display: block; text-align: center; margin-top: 20px; color: #7f8c8d; text-decoration: none; font-size: 13px; }
+        .back-link:hover { color: #333; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>🌾 Farmer Portal</h2>
+        <p class="subtitle">FairBid Auction & Direct Sourcing</p>
+
+        <!-- Login / Register Tabs -->
+        <div class="tab-group">
+            <button id="loginTabBtn" class="tab-btn active" onclick="switchTab('login')">Login</button>
+            <button id="registerTabBtn" class="tab-btn" onclick="switchTab('register')">Register</button>
+        </div>
+
+        <!-- LOGIN FORM -->
+        <form id="loginForm" onsubmit="handleFarmerLogin(event)">
+            <div class="form-group">
+                <label for="loginId">Farmer Unique ID / Phone</label>
+                <input type="text" id="loginId" placeholder="e.g., F101 or 9876543210" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" placeholder="Enter password" required>
+            </div>
+            <span id="loginError" class="error"></span>
+            <button type="submit" class="submit-btn">Login to Dashboard</button>
+        </form>
+
+        <!-- REGISTER FORM -->
+        <form id="registerForm" class="hidden" onsubmit="handleFarmerRegister(event)">
+            <div class="form-group">
+                <label for="regFullName">Full Name / Farm Name</label>
+                <input type="text" id="regFullName" placeholder="e.g., Ramesh Kumar" required>
+            </div>
+            <div class="form-group">
+                <label for="regFarmerId">Farmer Unique ID / Mobile Number</label>
+                <input type="text" id="regFarmerId" placeholder="e.g., F101 or 9876543210" required>
+            </div>
+            <div class="form-group">
+                <label for="regState">Operating State / Region</label>
+                <select id="regState" required>
+                    <option value="">Select your state</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Kerala">Kerala</option>
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="regCrop">Primary Crop Grown</label>
+                <select id="regCrop" required>
+                    <option value="">Select primary crop</option>
+                    <option value="Tomatoes">Tomatoes</option>
+                    <option value="Potatoes">Potatoes</option>
+                    <option value="Onions">Onions</option>
+                    <option value="Wheat">Wheat</option>
+                    <option value="Paddy/Rice">Paddy / Rice</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Create Password</label>
+                <input type="password" id="regPassword" placeholder="Create a secure password" required>
+            </div>
+            <span id="regMessage"></span>
+            <button type="submit" class="submit-btn">Register Account</button>
+        </form>
+
+        <a href="index.html" class="back-link">&larr; Back to Portal Selection</a>
+    </div>
+
+    <script>
+        // Pre-registered mock farmer for testing
+        if (!localStorage.getItem("farmersDB")) {
+            const initialFarmers = {
+                "F101": { name: "Ramesh Kumar", pass: "12345", state: "Tamil Nadu", crop: "Tomatoes" }
+            };
+            localStorage.setItem("farmersDB", JSON.stringify(initialFarmers));
+        }
+
+        function switchTab(tab) {
+            const loginForm = document.getElementById("loginForm");
+            const registerForm = document.getElementById("registerForm");
+            const loginTabBtn = document.getElementById("loginTabBtn");
+            const registerTabBtn = document.getElementById("registerTabBtn");
+            const loginErr = document.getElementById("loginError");
+            const regMsg = document.getElementById("regMessage");
+
+            loginErr.textContent = "";
+            regMsg.textContent = "";
+
+            if (tab === 'login') {
+                loginForm.classList.remove("hidden");
+                registerForm.classList.add("hidden");
+                loginTabBtn.classList.add("active");
+                registerTabBtn.classList.remove("active");
+            } else {
+                loginForm.classList.add("hidden");
+                registerForm.classList.remove("hidden");
+                registerTabBtn.classList.add("active");
+                loginTabBtn.classList.remove("active");
+            }
+        }
+
+        function handleFarmerRegister(event) {
+            event.preventDefault();
+            const fullName = document.getElementById("regFullName").value.trim();
+            const farmerId = document.getElementById("regFarmerId").value.trim();
+            const state = document.getElementById("regState").value;
+            const crop = document.getElementById("regCrop").value;
+            const password = document.getElementById("regPassword").value.trim();
+            const regMsg = document.getElementById("regMessage");
+
+            let farmersDB = JSON.parse(localStorage.getItem("farmersDB")) || {};
+
+            if (farmersDB[farmerId]) {
+                regMsg.className = "error";
+                regMsg.textContent = "This Farmer ID / Mobile is already registered! Please login.";
+                return;
+            }
+
+            farmersDB[farmerId] = { name: fullName, pass: password, state: state, crop: crop };
+            localStorage.setItem("farmersDB", JSON.stringify(farmersDB));
+
+            regMsg.className = "success";
+            regMsg.textContent = "Registration successful! Redirecting to login...";
+
+            setTimeout(() => {
+                document.getElementById("registerForm").reset();
+                switchTab('login');
+                document.getElementById("loginId").value = farmerId;
+            }, 1500);
+        }
+
+        function handleFarmerLogin(event) {
+            event.preventDefault();
+            const farmerId = document.getElementById("loginId").value.trim();
+            const password = document.getElementById("loginPassword").value.trim();
+            const loginErr = document.getElementById("loginError");
+
+            let farmersDB = JSON.parse(localStorage.getItem("farmersDB")) || {};
+
+            if (!farmersDB[farmerId]) {
+                loginErr.textContent = "Farmer ID not registered. Please click 'Register' first.";
+                return;
+            }
+
+            if (farmersDB[farmerId].pass !== password) {
+                loginErr.textContent = "Incorrect password. Please try again.";
+                return;
+            }
+
+            sessionStorage.setItem("loggedInFarmer", JSON.stringify({ id: farmerId, ...farmersDB[farmerId] }));
+            window.location.href = "farmer_dashboard.html";
+        }
+    </script>
+
+</body>
+</html>

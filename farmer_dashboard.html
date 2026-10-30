@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FairBid - Farmer Dashboard</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .header h1 { color: #27ae60; margin: 0; font-size: 24px; }
+        .logout-btn { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            padding: 8px 15px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+        }
+        
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        @media (max-width: 768px) {
+            .main-container { grid-template-columns: 1fr; }
+        }
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .card h2 { 
+            margin-top: 0; 
+            color: #2c3e50; 
+            font-size: 20px; 
+            border-bottom: 2px solid #27ae60; 
+            padding-bottom: 10px; 
+        }
+        
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .submit-btn {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .submit-btn:hover { background-color: #219653; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        th { background-color: #f8f9fa; color: #333; }
+        
+        .auction-banner {
+            background: #e8f8f5;
+            border: 1px solid #27ae60;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .auction-btn {
+            background-color: #2980b9;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .auction-btn:hover { background-color: #2471a3; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 id="dashboardHeader">🌾 Farmer Dashboard</h1>
+        <button onclick="logoutFarmer()" class="logout-btn">Log Out</button>
+    </div>
+
+    <div class="main-container">
+        <!-- Left Column: Add Product Form -->
+        <div class="card">
+            <h2>Add New Crop for Auction</h2>
+            <form id="productForm" onsubmit="addProduct(event)">
+                <div class="form-group">
+                    <label for="cropName">Select Crop</label>
+                    <select id="cropName" required>
+                        <option value="">-- Choose Crop --</option>
+                        <option value="Tomatoes">Tomatoes</option>
+                        <option value="Potatoes">Potatoes</option>
+                        <option value="Onions">Onions</option>
+                        <option value="Wheat">Wheat</option>
+                        <option value="Paddy/Rice">Paddy / Rice</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantity (in Kg)</label>
+                    <input type="number" id="quantity" placeholder="e.g., 500" required min="1">
+                </div>
+                <div class="form-group">
+                    <label for="minPrice">Minimum Acceptable Price / MSP (₹/Kg)</label>
+                    <input type="number" id="minPrice" placeholder="e.g., 22" required step="0.5" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="location">Location / State</label>
+                    <input type="text" id="location" placeholder="e.g., Tamil Nadu" required>
+                </div>
+                <button type="submit" class="submit-btn">List Product for Auction</button>
+            </form>
+        </div>
+
+        <!-- Right Column: My Listed Products -->
+        <div class="card">
+            <h2>My Listed Crops</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Crop</th>
+                        <th>Qty (Kg)</th>
+                        <th>MSP (₹/kg)</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    <tr>
+                        <td>Tomatoes (Grade A)</td>
+                        <td>200</td>
+                        <td>₹22/kg</td>
+                        <td>Tamil Nadu</td>
+                        <td><strong style="color: green;">Active Auction</strong></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Quick link to shared auction room -->
+            <div class="auction-banner">
+                <div>
+                    <strong>Live Bidding Control Room</strong>
+                    <p style="margin: 5px 0 0 0; font-size: 13px; color: #555;">View incoming buyer bids, handle below-MSP offers, or accept deals.</p>
+                </div>
+                <a href="auction_room.html" class="auction-btn">Enter Auction Room</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            const loggedInFarmer = JSON.parse(sessionStorage.getItem("loggedInFarmer"));
+
+            if (!loggedInFarmer) {
+                // Access control check: redirect to farmer_login.html if unauthenticated
+                window.location.href = "farmer_login.html";
+                return;
+            }
+
+            // Display dynamic farmer name and ID in header
+            document.getElementById("dashboardHeader").textContent = `🌾 Farmer Dashboard (${loggedInFarmer.name} - ID: ${loggedInFarmer.id})`;
+            
+            // Auto-fill state from registration details if available
+            if (loggedInFarmer.state) {
+                document.getElementById("location").value = loggedInFarmer.state;
+            }
+        };
+
+        function addProduct(event) {
+            event.preventDefault();
+
+            const crop = document.getElementById("cropName").value;
+            const qty = document.getElementById("quantity").value;
+            const price = document.getElementById("minPrice").value;
+            const location = document.getElementById("location").value;
+
+            // Save crop details to localStorage so auction_room.html reads them dynamically
+            const currentCropListing = {
+                cropName: crop,
+                quantity: qty,
+                minPrice: price,
+                location: location
+            };
+            localStorage.setItem("currentCropListing", JSON.stringify(currentCropListing));
+
+            // Append new listing to the dashboard table
+            const tableBody = document.getElementById("productTableBody");
+            const newRow = document.createElement("tr");
+
+            newRow.innerHTML = `
+                <td>${crop}</td>
+                <td>${qty}</td>
+                <td>₹${price}/kg</td>
+                <td>${location}</td>
+                <td><strong style="color: green;">Active Auction</strong></td>
+            `;
+
+            tableBody.appendChild(newRow);
+
+            document.getElementById("productForm").reset();
+            alert("Product listed successfully! Click 'Enter Auction Room' to monitor live buyer offers.");
+        }
+
+        function logoutFarmer() {
+            sessionStorage.removeItem("loggedInFarmer");
+            window.location.href = "farmer_login.html";
+        }
+    </script>
+
+</body>
+</html>
